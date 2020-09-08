@@ -2,6 +2,7 @@ const express=require("express");
 const cors=require("cors");
 const db=require("./lib/database");
 const taskmodel=require('./schema/task');
+var Cron = require('node-cron');
 
 const app=express();
 db.connect();
@@ -21,7 +22,16 @@ app.post('/add',function(req,res,next){
     })
     todo.save()
     .then(succ=>{
-        res.send("successfully added");
+        var job=Cron.schedule('*/'+succ.duration+' * * * *', function(){
+            taskmodel.deleteOne({_id:succ._id})
+            .then(data=>{
+                job.stop();
+            })
+            .catch(err=>{
+                return err;
+            })
+          });
+        res.send("Added Successfully");
     })
     .catch(err=>{
         res.send("failed to add");
@@ -37,5 +47,6 @@ app.get("/list",function(req,res,next){
         res.status(200).send("failed to fetch");
     })
 })
+
 
 app.listen(process.env.PORT || 3000);
